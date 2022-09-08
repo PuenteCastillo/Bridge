@@ -1,0 +1,55 @@
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const mongoose = require("mongoose");
+const keys = require("../config/keys");
+
+const User = mongoose.model("users");
+
+// google login Strategy
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: keys.googleClientID,
+      clientSecret: keys.googleClientSecret,
+      callbackURL: "/auth/google/callback",
+    },
+    (accessToken, refreshToken, profile, done) => {
+      // console.log("access token", accessToken);
+      // console.log("refresh token", refreshToken);
+      // console.log("profile", profile);
+
+      User.findOne({ googleId: profile.id })
+        .then((currentUser) => {
+          // if user exists, then return the user
+          if (currentUser) {
+            /// we already have a record with the given profile ID
+            console.log("user exists in our db", currentUser);
+            done(null, currentUser);
+          } else {
+            // create a new user and return the new user
+            new User({
+              googleId: profile.id,
+              familyName: profile.name.familyName,
+              givenName: profile.name.givenName,
+              email: profile.emails[0].value,
+              avatar: profile.photos[0].value,
+              locale: profile._json.locale,
+            })
+              .save((err) => {
+                if (err) {
+                  console.log(err);
+                } else {
+                  console.log("new user created");
+                }
+              })
+              .then((newUser) => {
+                done(null, newUser);
+              });
+          }
+        })
+        .catch((err) => {});
+    }
+  )
+);
+
+//todo add opendid strategy
