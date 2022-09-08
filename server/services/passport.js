@@ -5,6 +5,16 @@ const keys = require("../config/keys");
 
 const User = mongoose.model("users");
 
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+  User.findById(id).then((user) => {
+    done(null, user);
+  });
+});
+
 // google login Strategy
 passport.use(
   new GoogleStrategy(
@@ -35,16 +45,8 @@ passport.use(
               avatar: profile.photos[0].value,
               locale: profile._json.locale,
             })
-              .save((err) => {
-                if (err) {
-                  console.log(err);
-                } else {
-                  console.log("new user created");
-                }
-              })
-              .then((newUser) => {
-                done(null, newUser);
-              });
+              .save()
+              .then((user) => done(null, user));
           }
         })
         .catch((err) => {});
